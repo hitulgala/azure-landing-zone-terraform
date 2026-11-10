@@ -85,13 +85,24 @@ foreach ($module in 'Az.Accounts', 'Az.Resources', 'Az.Storage') {
 }
 
 Write-Step "Selecting subscription $SubscriptionId"
-$context = Get-AzContext
-if (-not (Get-AzContext)) {
-    if ($env:GITHUB_ACTIONS -eq "true") {
-        throw "No Azure context found in GitHub Actions."
+
+$context = Get-AzContext -ErrorAction SilentlyContinue
+
+if (-not $context)
+{
+    if ($env:GITHUB_ACTIONS -eq "true")
+    {
+        throw "No Azure PowerShell context available. Ensure azure/login uses enable-AzPSSession:true."
     }
+
     Connect-AzAccount | Out-Null
+    $context = Get-AzContext
 }
+
+Set-AzContext -Subscription $SubscriptionId | Out-Null
+$context  = Get-AzContext
+$tenantId = $context.Tenant.Id
+
 
 # ---------------------------------------------------------------- 1. Resource group
 Write-Step "Resource group '$ResourceGroupName'"
