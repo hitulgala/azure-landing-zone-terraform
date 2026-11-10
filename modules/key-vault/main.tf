@@ -28,12 +28,13 @@ resource "azurerm_key_vault" "this" {
   soft_delete_retention_days    = var.key_vault.soft_delete_retention_days
   public_network_access_enabled = var.key_vault.public_network_access_enabled
 
+/*
   network_acls {
     default_action = "Deny"
     bypass         = "AzureServices"
     ip_rules       = var.key_vault.allowed_ip_ranges # plain IPs or CIDRs (no /31, /32)
   }
-
+*/ # This can be uncommented once we have Azure DevOps self hosted agent or GitHub Runners inside Azure
   tags = var.tags
 }
 
