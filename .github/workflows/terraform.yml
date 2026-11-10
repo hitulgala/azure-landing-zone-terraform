@@ -23,6 +23,11 @@ jobs:
         with:
           creds: ${{ secrets.TERRAFORM_SP }}
 
+      - name: Verify Azure Context
+        shell: pwsh
+        run: |
+          Get-AzContext
+
       - name: Install Az PowerShell Modules
         shell: pwsh
         run: |
