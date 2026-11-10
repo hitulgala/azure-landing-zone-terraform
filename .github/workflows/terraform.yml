@@ -31,7 +31,7 @@ jobs:
       - name: Run Bootstrap Script
         shell: pwsh
         run: |
-          ./scripts/bootstrap.ps1
+          ./scripts/Bootstrap-TerraformBackend.ps1
 
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
@@ -41,3 +41,12 @@ jobs:
 
       - name: Terraform Validate
         run: terraform validate
+
+      - name: Terraform Plan
+        run: terraform plan -out=tfplan
+
+      - name: Upload Plan
+        uses: actions/upload-artifact@v4
+        with:
+          name: terraform-plan
+          path: primary-centralindia/tfplan
