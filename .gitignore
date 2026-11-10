@@ -1,0 +1,25 @@
+# Terraform state
+*.tfstate
+*.tfstate.*
+backend.hcl
+#.terraform.lock.hcl
+
+# Terraform cache
+.terraform/
+.primary-centralindia/.terraform
+
+# Variables
+*.auto.tfvars
+
+# Plans
+*.tfplan
+*.plan
+
+# VS Code
+.vscode/
+
+# Logs
+*.log
+
+secondary-southindia/
+docs/
