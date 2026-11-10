@@ -28,10 +28,13 @@ jobs:
         run: |
           Install-Module Az -Force -Scope CurrentUser -AllowClobber
 
-      - name: Run Bootstrap Script
+      - name: Run Terraform Backend Bootstrap
         shell: pwsh
         run: |
-          ./scripts/Bootstrap-TerraformBackend.ps1
+          ./Bootstrap-TerraformBackend.ps1 `
+            -SubscriptionId "${{ vars.TF_SUBSCRIPTION_ID }}" `
+            -ResourceGroupName "${{ vars.TF_STATE_RG }}" `
+            -StorageAccountName "${{ vars.TF_STATE_STORAGE }}"
 
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
