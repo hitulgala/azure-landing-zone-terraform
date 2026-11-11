@@ -6,7 +6,7 @@ Hub-and-spoke landing zone for **Central India (primary)** and **South India (se
 
 ## Layout
 ```
-scripts/New-TerraformBackend.ps1   creates the state storage account + folders + backend.hcl files
+scripts/Bootstrap-TerraformBackend.ps1   creates the state storage account + folders + backend.hcl files
 modules/                           8 single-purpose modules (see modules/README.md)
 primary-centralindia/              main.tf + terraform.tfvars  (all four subscriptions, primary region)
 secondary-southindia/              main.tf + terraform.tfvars  (all four subscriptions, secondary region)
@@ -17,8 +17,7 @@ Each region folder contains the same files: `main.tf` (wiring), `variables.tf` (
 ## Deploy
 ```powershell
 # 1. Once: create the remote backend (governance subscription)
-.\scripts\New-TerraformBackend.ps1 -SubscriptionId "<governance-sub-id>" `
-    -ResourceGroupName "rg-tfstate-prd-cin" -StorageAccountName "<unique-name>"
+.\scripts\Bootstrap-TerraformBackend.ps1 -SubscriptionId "<governance-sub-id>" -ResourceGroupName "rg-tfstate-prd-cin-001" -StorageAccountName "<unique-name>"
 
 # 2. Primary region
 cd primary-centralindia
@@ -30,7 +29,7 @@ terraform apply tfplan
 # 3. Secondary region (after the primary succeeded)
 cd ..\secondary-southindia
 #   edit terraform.tfvars (same IDs; the primary_hub block comes from the primary's outputs)
-terraform init -backend-config=backend.hcl
+terraform init -backend-config="backend.hcl"
 terraform plan -out tfplan
 terraform apply tfplan
 ```
@@ -50,7 +49,7 @@ After both applies, compare the two `firewall_private_ip` outputs with the firew
 |--------------|-----------|
 | Governance | RG, Log Analytics workspace, action group, Service Health alert, Activity Log forwarding (primary only) |
 | Hub | RG, VNet, Azure Firewall Standard + policy + rules, DNS Private Resolver, Private DNS zones (created in primary, linked from secondary), cross-region UDR |
-| Identity | RG, VNet, NSGs, route table, Key Vault + private endpoint, DC VMs (3 zonal in Central India; 2 in an availability set in South India). **No AD DS promotion.** |
+| Identity | RG, VNet, NSGs, route table, Key Vault + private endpoint, DC VMs (2 zonal in Central India; 2 in an availability set in South India). **No AD DS promotion.** |
 | Workload | RG, VNet, NSGs, route table, Recovery Services Vault + daily VM backup policy. **No VMs.** |
 
 ## IP plan
