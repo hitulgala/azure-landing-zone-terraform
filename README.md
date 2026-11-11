@@ -17,7 +17,7 @@ Each region folder contains the same files: `main.tf` (wiring), `variables.tf` (
 ## Deploy
 ```powershell
 # 1. Once: create the remote backend (governance subscription)
-.\scripts\Bootstrap-TerraformBackend -SubscriptionId "<governance-sub-id>" -ResourceGroupName "rg-tfstate-prd-cin" -StorageAccountName "<unique-name>"
+.\scripts\Bootstrap-TerraformBackend.ps1 -SubscriptionId "<governance-sub-id>" -ResourceGroupName "rg-tfstate-prd-cin-001" -StorageAccountName "<unique-name>"
 
 # 2. Primary region
 cd primary-centralindia
