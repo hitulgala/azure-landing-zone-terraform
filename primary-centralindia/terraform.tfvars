@@ -38,7 +38,7 @@ governance = {
 
   log_analytics = {
     name              = "log-platform-prd-cin-001"
-    retention_in_days = 90
+    retention_in_days = 60
     daily_quota_gb    = -1
   }
 
