@@ -1,4 +1,3 @@
-# Inputs for the peering module.
 variable "name_a_to_b" {
   description = "Name of the peering created on side A."
   type        = string

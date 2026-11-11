@@ -1,4 +1,3 @@
-# Inputs for the network module (all values come from the stack's terraform.tfvars).
 variable "location" {
   description = "Azure region."
   type        = string

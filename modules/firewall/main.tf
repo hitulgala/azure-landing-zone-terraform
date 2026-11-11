@@ -6,8 +6,6 @@
 #
 # The firewall's private IP is the first free address of AzureFirewallSubnet.
 # Spoke route tables and DNS settings in tfvars reference that IP; the stack's
-# 'check' block warns if the real IP differs from what tfvars expects.
-# zones = [] for regions without Availability Zones.
 # ==============================================================================
 resource "azurerm_public_ip" "this" {
   name                = var.firewall.public_ip_name

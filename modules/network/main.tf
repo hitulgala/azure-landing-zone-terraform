@@ -4,8 +4,6 @@
 #           route tables. Used for the hub VNet and for every spoke VNet.
 #
 # Everything (names, prefixes, rules, routes) comes from the caller's tfvars.
-# Azure-mandated constants kept here: NSG log category names, the priorities of
-# the two safety rules added when add_deny_all_inbound = true.
 # ==============================================================================
 locals {
   # Flatten  nsg -> rules  into one map so a single resource can create them all.

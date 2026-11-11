@@ -1,4 +1,3 @@
-# Inputs for the domain-controllers module (values come from terraform.tfvars).
 variable "resource_group_name" {
   description = "Identity resource group (created by the network module)."
   type        = string

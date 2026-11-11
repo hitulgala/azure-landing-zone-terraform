@@ -1,4 +1,3 @@
-# Inputs for the dns module (values come from terraform.tfvars).
 variable "resource_group_name" {
   description = "Hub network resource group (resolver resources)."
   type        = string

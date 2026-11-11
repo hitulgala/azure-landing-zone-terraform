@@ -2,10 +2,6 @@
 # Module  : recovery-vault   (WORKLOAD subscription)
 # Purpose : Recovery Services Vault for Azure Backup AND Azure Site Recovery,
 #           with an optional daily VM backup policy and diagnostics.
-#
-# One vault per region. The SECONDARY-region vault doubles as the ASR target vault
-# for primary-region VMs. storage_mode_type cannot change once items are protected;
-# cross_region_restore_enabled requires GeoRedundant.
 # ==============================================================================
 resource "azurerm_recovery_services_vault" "this" {
   name                         = var.vault.name

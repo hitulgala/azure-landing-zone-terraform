@@ -1,4 +1,3 @@
-# Inputs for the policy module (values come from the stack's terraform.tfvars).
 variable "subscription_id" {
   description = "Subscription the policies are assigned to."
   type        = string

@@ -1,4 +1,3 @@
-# Inputs for the firewall module (values come from terraform.tfvars).
 variable "resource_group_name" {
   description = "Hub network resource group (created by the network module)."
   type        = string
@@ -35,11 +34,11 @@ variable "firewall" {
     name                     = string
     public_ip_name           = string
     policy_name              = string
-    sku_tier                 = string                     # Standard
-    zones                    = list(string)               # ["1","2","3"] or []
-    threat_intelligence_mode = string                     # Off | Alert | Deny
+    sku_tier                 = string       # Standard
+    zones                    = list(string) # ["1","2","3"] or []
+    threat_intelligence_mode = string       # Off | Alert | Deny
     dns_proxy_enabled        = bool
-    dns_servers              = list(string)               # resolver inbound IP
+    dns_servers              = list(string) # resolver inbound IP
     diagnostic_setting_name  = string
     rule_collection_group = object({
       name     = string

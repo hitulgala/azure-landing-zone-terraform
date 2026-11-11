@@ -8,9 +8,6 @@
 #             * ANY other built-in policy: allowed VM SKUs, allowed locations,
 #               no public IPs on NICs, ... defined in 'assignments'.
 #
-# Built-in definitions are looked up by DISPLAY NAME (given in tfvars), so no GUIDs
-# are hard-coded. If Microsoft renames one, the lookup fails loudly - update tfvars.
-#
 # enforce = false  -> "DoNotEnforce": evaluated and reported, nothing blocked (audit).
 # enforce = true   -> Deny / Modify effects are active.
 #
@@ -18,10 +15,6 @@
 # This module grants that identity the roles listed IN THE POLICY DEFINITION
 # (Contributor for the built-in inherit-tag policy) on this subscription only.
 # That needs Owner / User Access Administrator for the deploying identity.
-#
-# Timing: assignments take up to ~30 minutes to become effective. Modify only acts on
-# resources created/updated AFTER the assignment; existing resources need a
-# remediation task (Portal > Policy > Remediation).
 # ==============================================================================
 locals {
   subscription_scope = "/subscriptions/${var.subscription_id}"
@@ -30,29 +23,29 @@ locals {
   tag_assignments = merge(
     {
       for tag in var.mandatory_tag_names : "tag-rg-${tag}" => {
-        display_name           = "Require tag '${tag}' on resource groups"
+        display_name            = "Require tag '${tag}' on resource groups"
         definition_display_name = var.policy_definition_names.require_tag_on_resource_groups
-        enforce                = var.mandatory_tags.enforce
-        parameters             = { tagName = tag }
-        identity               = false
+        enforce                 = var.mandatory_tags.enforce
+        parameters              = { tagName = tag }
+        identity                = false
       } if var.mandatory_tags.require_on_resource_groups
     },
     {
       for tag in var.mandatory_tag_names : "tag-inherit-${tag}" => {
-        display_name           = "Inherit tag '${tag}' from the resource group"
+        display_name            = "Inherit tag '${tag}' from the resource group"
         definition_display_name = var.policy_definition_names.inherit_tag_from_resource_group
-        enforce                = var.mandatory_tags.enforce
-        parameters             = { tagName = tag }
-        identity               = true # Modify effect needs a managed identity
+        enforce                 = var.mandatory_tags.enforce
+        parameters              = { tagName = tag }
+        identity                = true # Modify effect needs a managed identity
       } if var.mandatory_tags.inherit_from_resource_group
     },
     {
       for tag in var.mandatory_tag_names : "tag-res-${tag}" => {
-        display_name           = "Require tag '${tag}' on resources"
+        display_name            = "Require tag '${tag}' on resources"
         definition_display_name = var.policy_definition_names.require_tag_on_resources
-        enforce                = var.mandatory_tags.enforce
-        parameters             = { tagName = tag }
-        identity               = false
+        enforce                 = var.mandatory_tags.enforce
+        parameters              = { tagName = tag }
+        identity                = false
       } if var.mandatory_tags.require_on_resources
     }
   )

@@ -1,0 +1,127 @@
+# ==============================================================================
+# Terraform Apply
+# Starts automatically when "Terraform Plan" finishes. Applies ONLY when:
+#   * the plan run succeeded, on main, and was not a pull request
+#   * the plan contains changes
+#   * a reviewer approves the 'prod' environment
+# It applies the exact plan file that was reviewed - it never re-plans.
+# ==============================================================================
+name: Terraform Apply
+ 
+on:
+  workflow_run:
+    workflows: ["Terraform Plan"]
+    types: [completed]
+ 
+permissions:
+  contents: read
+  actions: read          # needed to download an artifact from ANOTHER workflow run
+ 
+concurrency:
+  group: tf-apply-primary-centralindia
+  cancel-in-progress: false   # never interrupt a running apply
+ 
+env:
+  STACK: primary-centralindia
+  TF_IN_AUTOMATION: "true"
+  TF_INPUT: "0"
+ 
+jobs:
+  # Lightweight gate: decides whether an approval is needed at all
+  check:
+    name: check plan
+    if: >-
+      github.event.workflow_run.conclusion == 'success' &&
+      github.event.workflow_run.head_branch == 'main' &&
+      github.event.workflow_run.event != 'pull_request'
+    runs-on: ubuntu-latest
+    outputs:
+      has_changes: ${{ steps.flag.outputs.has_changes }}
+    steps:
+      - name: Download plan bundle from the Terraform Plan run
+        uses: actions/download-artifact@v4
+        with:
+          name: terraform-plan-primary-centralindia
+          run-id: ${{ github.event.workflow_run.id }}
+          github-token: ${{ github.token }}
+          path: bundle
+ 
+      - name: Read change flag
+        id: flag
+        run: |
+          has_changes=$(tr -d '[:space:]' < bundle/has_changes.txt)
+          echo "has_changes=$has_changes" >> "$GITHUB_OUTPUT"
+          {
+            echo "## Pending deployment: \`${STACK}\`"
+            echo "Commit: \`${{ github.event.workflow_run.head_sha }}\`"
+            echo "Changes in plan: **$has_changes**"
+            echo ""
+            echo "Review the plan before approving: ${{ github.event.workflow_run.html_url }}"
+          } >> "$GITHUB_STEP_SUMMARY"
+ 
+  apply:
+    name: apply (primary-centralindia)
+    needs: check
+    if: needs.check.outputs.has_changes == 'true'
+    runs-on: ubuntu-latest
+    environment: prod              # <- pauses here for the required reviewer
+    timeout-minutes: 120
+    defaults:
+      run:
+        working-directory: primary-centralindia
+ 
+    steps:
+      # workflow_run runs on the latest main; check out the commit that was PLANNED
+      - name: Checkout the planned commit
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.workflow_run.head_sha }}
+ 
+      - name: Azure login
+        uses: azure/login@v2
+        with:
+          creds: ${{ secrets.TERRAFORM_SP }}
+ 
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ${{ vars.TF_VERSION }}
+          terraform_wrapper: false
+ 
+      - name: Download plan bundle
+        uses: actions/download-artifact@v4
+        with:
+          name: terraform-plan-primary-centralindia
+          run-id: ${{ github.event.workflow_run.id }}
+          github-token: ${{ github.token }}
+          path: primary-centralindia
+ 
+      - name: Decrypt plan
+        env:
+          PLAN_PASSPHRASE: ${{ secrets.TF_PLAN_PASSPHRASE }}
+        run: |
+          printf '%s' "$PLAN_PASSPHRASE" | gpg --batch --yes --pinentry-mode loopback \
+            --passphrase-fd 0 --decrypt --output tfplan tfplan.gpg
+ 
+      # Same backend.hcl the plan used (it came in the bundle)
+      - name: Terraform init
+        run: terraform init -backend-config="backend.hcl"
+ 
+      # A saved plan needs no -auto-approve; the approval was the gate.
+      # If state changed after planning, Terraform stops with "saved plan is stale".
+      - name: Terraform apply
+        run: terraform apply -no-color -lock-timeout=10m tfplan
+ 
+      - name: Deployment summary
+        if: always()
+        run: |
+          {
+            echo "## Apply result: **${{ job.status }}**"
+            echo "Stack: \`${STACK}\`  |  Commit: \`${{ github.event.workflow_run.head_sha }}\`"
+            echo "Plan run: ${{ github.event.workflow_run.html_url }}"
+            if [ "${{ job.status }}" = "success" ]; then
+              echo '```text'
+              terraform output -no-color 2>/dev/null || true
+              echo '```'
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"

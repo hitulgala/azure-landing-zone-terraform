@@ -8,8 +8,6 @@
 # Private DNS zones are global resources. The PRIMARY stack creates them
 # (private_dns.create_zones = true); the SECONDARY stack sets it to false and
 # only creates links from its own hub VNet to the existing zones.
-# Only the hub VNet needs links: spokes resolve through the firewall DNS proxy,
-# which queries the resolver, which resolves from the hub VNet.
 # ==============================================================================
 resource "azurerm_private_dns_resolver" "this" {
   name                = var.resolver.name
@@ -83,7 +81,7 @@ resource "azurerm_private_dns_zone" "this" {
 resource "azurerm_private_dns_zone_virtual_network_link" "this" {
   for_each = azurerm_private_dns_zone.this
 
-  name = "${var.private_dns.vnet_link_name}-${replace(each.value.name, ".", "-")}"
+  name                  = "${var.private_dns.vnet_link_name}-${replace(each.value.name, ".", "-")}"
   resource_group_name   = var.private_dns.resource_group_name
   private_dns_zone_name = each.value.name
   virtual_network_id    = var.vnet_id
@@ -93,5 +91,3 @@ resource "azurerm_private_dns_zone_virtual_network_link" "this" {
   tags = var.tags
 }
 
-#resource_group_name   = var.private_dns.resource_group_name
-#private_dns_zone_name = var.private_dns.create_zones ? azurerm_private_dns_zone.this[each.value].name : each.value

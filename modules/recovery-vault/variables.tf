@@ -1,4 +1,3 @@
-# Inputs for the recovery-vault module (values come from terraform.tfvars).
 variable "resource_group_name" {
   description = "Workload resource group (created by the network module)."
   type        = string

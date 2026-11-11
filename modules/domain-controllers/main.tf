@@ -1,15 +1,12 @@
 # ==============================================================================
 # Module  : domain-controllers   (IDENTITY subscription)
 # Purpose : Domain-controller-ready Windows Server VMs (NO AD DS promotion):
-#             optional availability set + per DC: NIC (static private IP, no public
-#             IP), OS disk, dedicated NTDS data disk, VM.
+#             optional availability set + per DC: NIC (static private IP, no public IP), OS disk, dedicated NTDS data disk, VM.
 #
-# Placement (set in tfvars)
 #   Region WITH Availability Zones  : availability_set = null, each DC has a zone
 #   Region WITHOUT Availability Zones: availability_set = {...}, every zone = null
 #
 # NTDS disk: AD database/logs go on a separate disk with host caching = None
-# (Microsoft guidance). Choose it for NTDS, logs and SYSVOL during promotion.
 # ==============================================================================
 resource "azurerm_availability_set" "this" {
   count = var.availability_set == null ? 0 : 1

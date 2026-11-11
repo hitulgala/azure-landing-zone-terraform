@@ -1,8 +1,6 @@
 # ==============================================================================
 # Stack: primary-centralindia  |  Variable declarations
 # This file only DECLARES inputs. Every value lives in terraform.tfvars.
-# Large nested settings use "any" here; the detailed schema (and validation) is
-# enforced by the module that consumes them - see modules/<name>/variables.tf.
 # ==============================================================================
 variable "tenant_id" {
   description = "Microsoft Entra tenant ID."

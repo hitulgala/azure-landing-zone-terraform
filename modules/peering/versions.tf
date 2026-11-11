@@ -1,4 +1,3 @@
-# Two azurerm provider configurations are required (one per VNet side).
 terraform {
   required_version = ">= 1.11.0"
 

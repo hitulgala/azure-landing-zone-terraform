@@ -417,7 +417,7 @@ identity = {
       name                         = "avset-adds-prd-cin-001"
       platform_fault_domain_count  = 2
       platform_update_domain_count = 5
-    } # Central India has Availability Zones: one DC per zone
+    } # Comment this block if you do not want VMs in Availability Sets
 
     # Map key = Windows computer name (max 15 chars). First usable IP is .4
     servers = {
@@ -427,7 +427,7 @@ identity = {
         os_disk_name   = "osdisk-cindc01"
         ntds_disk_name = "datadisk-cindc01"
         private_ip     = "10.10.4.4"
-        zone           = null
+        zone           = null # Update this to Zone Number "1" if want VMs in Availability Zones
       }
       CINDC02 = {
         vm_name        = "vm-cin-dc02"
@@ -435,9 +435,9 @@ identity = {
         os_disk_name   = "osdisk-cindc02"
         ntds_disk_name = "datadisk-cindc02"
         private_ip     = "10.10.4.5"
-        zone           = null
+        zone           = null # Update this to Zone Number "2" if want VMs in Availability Zones
       }
-     /* CINDC03 = {
+      /* CINDC03 = {
         vm_name        = "vm-adds-cin-dc03"
         nic_name       = "nic-cindc03"
         os_disk_name   = "osdisk-cindc03"

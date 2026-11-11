@@ -1,0 +1,119 @@
+# ==============================================================================
+# Terraform Plan
+#   push to main / manual run : bootstrap -> fmt -> init -> validate -> plan
+#                               -> summary -> encrypted plan artifact
+#                               (Terraform Apply then picks it up for approval)
+#   pull request into main    : same checks and plan, but NOTHING is handed to apply
+# ==============================================================================
+name: Terraform Plan
+ 
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+ 
+permissions:
+  contents: read
+ 
+concurrency:
+  group: tf-plan-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true   # a newer push replaces an older, still-running plan
+ 
+env:
+  STACK: primary-centralindia
+  TF_IN_AUTOMATION: "true"
+  TF_INPUT: "0"
+ 
+jobs:
+  plan:
+    name: plan (primary-centralindia)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: primary-centralindia
+ 
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+ 
+      - name: Azure login
+        uses: azure/login@v2
+        with:
+          creds: ${{ secrets.TERRAFORM_SP }}
+          enable-AzPSSession: true
+ 
+      - name: Install Az PowerShell Modules
+        shell: pwsh
+        run: |
+          Install-Module Az -Force -Scope CurrentUser -AllowClobber
+
+      - name: Run Terraform Backend Bootstrap
+        shell: pwsh
+        run: |
+          ../scripts/Bootstrap-TerraformBackend.ps1 `
+            -SubscriptionId "${{ vars.TF_SUBSCRIPTION_ID }}" `
+            -ResourceGroupName "${{ vars.TF_STATE_RG }}" `
+            -StorageAccountName "${{ vars.TF_STATE_STORAGE }}"
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ${{ vars.TF_VERSION }}   # must be identical in Terraform Apply
+          terraform_wrapper: false
+ 
+      - name: Terraform fmt (whole repo, incl. modules)
+        working-directory: ${{ github.workspace }}
+        run: terraform fmt -check -recursive -diff
+ 
+      - name: Terraform init
+        run: terraform init -backend-config="backend.hcl"
+ 
+      - name: Terraform validate
+        run: terraform validate -no-color
+ 
+      # -detailed-exitcode: 0 = no changes, 1 = error, 2 = changes
+      - name: Terraform plan
+        id: plan
+        run: |
+          set +e
+          terraform plan -no-color -lock-timeout=10m -detailed-exitcode -out=tfplan
+          code=$?
+          set -e
+          if [ "$code" -eq 1 ]; then exit 1; fi
+          if [ "$code" -eq 2 ]; then echo "has_changes=true" >> "$GITHUB_OUTPUT"; else echo "has_changes=false" >> "$GITHUB_OUTPUT"; fi
+ 
+      - name: Publish plan to job summary
+        run: |
+          {
+            echo "## Terraform plan: \`${STACK}\`"
+            echo "Changes: **${{ steps.plan.outputs.has_changes }}**  |  Commit: \`${{ github.sha }}\`"
+            echo '```text'
+            terraform show -no-color tfplan | head -c 60000
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+ 
+      # ---- Hand-over to Terraform Apply (main / manual runs only, never PRs) ----
+      # The plan file contains state and secret values, so it is encrypted.
+      - name: Prepare plan bundle
+        if: github.event_name != 'pull_request'
+        env:
+          PLAN_PASSPHRASE: ${{ secrets.TF_PLAN_PASSPHRASE }}
+        run: |
+          printf '%s' "$PLAN_PASSPHRASE" | gpg --batch --yes --pinentry-mode loopback \
+            --passphrase-fd 0 --symmetric --cipher-algo AES256 --output tfplan.gpg tfplan
+          echo "${{ steps.plan.outputs.has_changes }}" > has_changes.txt
+ 
+      - name: Upload plan bundle
+        if: github.event_name != 'pull_request'
+        uses: actions/upload-artifact@v4
+        with:
+          name: terraform-plan-primary-centralindia
+          path: |
+            primary-centralindia/tfplan.gpg
+            primary-centralindia/backend.hcl
+            primary-centralindia/has_changes.txt
+          retention-days: 5          # approve within 5 days, or re-run Terraform Plan
+          if-no-files-found: error
+ 

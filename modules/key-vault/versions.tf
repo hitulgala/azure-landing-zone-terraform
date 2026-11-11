@@ -1,4 +1,3 @@
-# 'random' generates the DC admin password; 'time' waits for the RBAC role to propagate.
 terraform {
   required_version = ">= 1.11.0"
 

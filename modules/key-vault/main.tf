@@ -11,8 +11,6 @@
 #   public_network_access_enabled = true  : vault reachable ONLY from allowed_ip_ranges
 #                                           (needed while Terraform runs outside the VNet)
 #   public_network_access_enabled = false : private endpoint only
-# NOTE: the generated password is also present in Terraform state, because the VM
-# resource needs it at creation. Treat state as secret; rotate after AD promotion.
 # ==============================================================================
 data "azurerm_client_config" "current" {}
 
@@ -28,7 +26,7 @@ resource "azurerm_key_vault" "this" {
   soft_delete_retention_days    = var.key_vault.soft_delete_retention_days
   public_network_access_enabled = var.key_vault.public_network_access_enabled
 
-/*
+  /*
   network_acls {
     default_action = "Deny"
     bypass         = "AzureServices"
@@ -52,16 +50,14 @@ resource "azurerm_private_endpoint" "this" {
     is_manual_connection           = false
   }
 
-  # The Private DNS zone lives in the HUB subscription. The deploying identity
-  # needs "Private DNS Zone Contributor" on it.
+  # The Private DNS zone lives in the HUB subscription. The deploying identity needs "Private DNS Zone Contributor" on it.
   private_dns_zone_group {
     name                 = "default"
     private_dns_zone_ids = [var.private_dns_zone_id]
   }
 }
 
-# The vault uses RBAC, so the identity running Terraform needs a data-plane role
-# to write the secret. This is the only role assignment in this repository.
+# The vault uses RBAC, so the identity running Terraform needs a data-plane role to write the secret. This is the only role assignment in this repository.
 resource "azurerm_role_assignment" "deployer" {
   scope                = azurerm_key_vault.this.id
   role_definition_name = "Key Vault Secrets Officer"

@@ -1,4 +1,3 @@
-# Inputs for the key-vault module (values come from terraform.tfvars).
 variable "resource_group_name" {
   description = "Identity resource group (created by the network module)."
   type        = string

@@ -3,7 +3,6 @@
 # Purpose : Creates BOTH halves of a VNet peering (A->B and B->A).
 #
 # Two provider aliases are needed because the VNets are usually in different
-# subscriptions:   providers = { azurerm.side_a = azurerm.hub, azurerm.side_b = azurerm.identity }
 # For hub-to-hub peering (same subscription) pass the same provider twice.
 # The deploying identity needs Network Contributor on BOTH VNets.
 # ==============================================================================

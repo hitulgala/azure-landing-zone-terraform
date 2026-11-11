@@ -1,4 +1,3 @@
-# Inputs for the monitoring module (values come from terraform.tfvars).
 variable "resource_group_name" {
   description = "Governance resource group to create."
   type        = string
