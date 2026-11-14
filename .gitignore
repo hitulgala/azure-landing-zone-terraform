@@ -22,4 +22,3 @@ backend.hcl
 *.log
 
 secondary-southindia/
-docs/

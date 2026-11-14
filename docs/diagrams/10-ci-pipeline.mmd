@@ -1,0 +1,10 @@
+flowchart LR
+  BR["Feature branch"] --> PR["Pull request<br/>into main"]
+  PR --> P1["Terraform Plan<br/>fmt, init, validate, plan<br/>plan in run Summary"]
+  P1 --> RS{"Ruleset:<br/>plan check passed,<br/>branch up to date?"}
+  RS -->|"squash merge"| M["main"]
+  M --> P2["Terraform Plan on main<br/>bootstrap, plan<br/>encrypted plan bundle"]
+  P2 --> C{"Terraform Apply: check<br/>changes in plan?"}
+  C -->|"no"| SK["Apply skipped<br/>no approval needed"]
+  C -->|"yes"| AP["Approval on<br/>prod environment"]
+  AP --> A["terraform apply tfplan<br/>exact reviewed plan<br/>result in Summary"]

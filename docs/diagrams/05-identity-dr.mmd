@@ -1,0 +1,23 @@
+flowchart TB
+  subgraph CIN["Central India - AD site CIN"]
+    subgraph AVC["Availability set"]
+      D1["CINDC01<br/>10.10.4.4"]
+      D2["CINDC02<br/>10.10.4.5"]
+    end
+    D3["CINDC03 (optional)<br/>10.10.4.6<br/>enable in tfvars"]
+    KV1["Key Vault<br/>DC admin password<br/>private endpoint"]
+  end
+  subgraph SIN["South India - AD site SIN (no zones)"]
+    subgraph AVS["Availability set"]
+      D4["SINDC01<br/>10.20.4.4"]
+      D5["SINDC02<br/>10.20.4.5"]
+    end
+    KV2["Key Vault<br/>DC admin password<br/>private endpoint"]
+  end
+  D1 <-->|"intra-site replication"| D2
+  D2 -.->|"if enabled"| D3
+  D4 <-->|"intra-site replication"| D5
+  D1 <==>|"inter-site replication<br/>change notification on"| D4
+  KV1 -.-> D1
+  KV2 -.-> D4
+  style D3 stroke-dasharray: 5 5

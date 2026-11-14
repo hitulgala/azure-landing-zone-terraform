@@ -1,0 +1,24 @@
+flowchart TB
+  GOV["module.governance (monitoring)<br/>Log Analytics ID and action group ID<br/>are consumed by EVERY module below<br/>that creates diagnostics or alerts"]
+  HN["module.hub_network<br/>network"]
+  HF["module.hub_firewall<br/>firewall"]
+  HD["module.hub_dns<br/>dns"]
+  IN["module.identity_network<br/>network"]
+  KV["module.key_vault<br/>key-vault"]
+  DC["module.domain_controllers<br/>domain-controllers"]
+  WN["module.workload_network<br/>network"]
+  RV["module.recovery_vault<br/>recovery-vault"]
+  P1["module.peering_hub_identity<br/>peering"]
+  P2["module.peering_hub_workload<br/>peering"]
+  POL["module.policy_* x4<br/>policy, primary only<br/>(no dependencies)"]
+  HN --> HF
+  HN --> HD
+  HD -->|"Private DNS zone ID"| KV
+  IN --> KV
+  KV -->|"admin password<br/>after secret stored"| DC
+  IN --> DC
+  WN --> RV
+  HN --> P1
+  IN --> P1
+  HN --> P2
+  WN --> P2

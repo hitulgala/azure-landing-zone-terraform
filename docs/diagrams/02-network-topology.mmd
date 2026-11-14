@@ -1,0 +1,27 @@
+flowchart LR
+  subgraph CIN["Central India 10.10.0.0/16 - PRIMARY"]
+    direction TB
+    subgraph HUBC["Hub VNet 10.10.0.0/22"]
+      FWC["Azure Firewall<br/>10.10.0.4"]
+      DNSC["DNS Private Resolver<br/>inbound 10.10.1.4"]
+    end
+    IDC["Identity spoke<br/>10.10.4.0/24"]
+    WLC["Workload spoke<br/>10.10.8.0/22"]
+    IDC <-->|"peering"| HUBC
+    WLC <-->|"peering"| HUBC
+  end
+  subgraph SIN["South India 10.20.0.0/16 - SECONDARY"]
+    direction TB
+    subgraph HUBS["Hub VNet 10.20.0.0/22"]
+      FWS["Azure Firewall<br/>10.20.0.4"]
+      DNSS["DNS Private Resolver<br/>inbound 10.20.1.4"]
+    end
+    IDS["Identity spoke<br/>10.20.4.0/24"]
+    WLS["Workload spoke<br/>10.20.8.0/22"]
+    IDS <-->|"peering"| HUBS
+    WLS <-->|"peering"| HUBS
+  end
+  HUBC <==>|"global VNet peering<br/>hub to hub"| HUBS
+  INET(("Internet"))
+  FWC --> INET
+  FWS --> INET

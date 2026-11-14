@@ -1,0 +1,10 @@
+# Copy this file to ids.auto.tfvars (same folder) and fill in your own IDs.
+
+tenant_id = "00000000-0000-0000-0000-000000000000" # Entra tenant ID
+
+subscription_ids = {
+  governance = "00000000-0000-0000-0000-000000000000"
+  hub        = "00000000-0000-0000-0000-000000000000"
+  identity   = "00000000-0000-0000-0000-000000000000"
+  workload   = "00000000-0000-0000-0000-000000000000"
+}

@@ -27,10 +27,16 @@ variable "key_vault" {
     soft_delete_retention_days    = number # 7-90, fixed at creation
     public_network_access_enabled = bool
     allowed_ip_ranges             = optional(list(string), [])
+    network_default_action        = optional(string, "Allow") # "Deny" only when Terraform runs inside the VNet or from a fixed IP
     secret_name                   = string
     role_propagation_wait         = string # e.g. "90s"
     diagnostic_setting_name       = string
   })
+
+  validation {
+    condition     = contains(["Allow", "Deny"], var.key_vault.network_default_action)
+    error_message = "key_vault.network_default_action must be Allow or Deny."
+  }
 }
 
 variable "private_endpoint" {
