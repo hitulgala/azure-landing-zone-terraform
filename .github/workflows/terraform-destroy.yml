@@ -1,0 +1,181 @@
+# ==============================================================================
+# Terraform Destroy  -  manual only, approval-gated.
+#   job 1 plan-destroy : bootstrap -> init -> plan -destroy -> summary
+#                        -> encrypted plan bundle
+#   job 2 destroy      : waits for approval on 'prod', then applies EXACTLY the
+#                        destroy plan that was reviewed
+# The state storage account is NOT destroyed (it is not in Terraform state).
+# ==============================================================================
+name: Terraform Destroy
+
+on:
+  workflow_dispatch:
+    inputs:
+      confirm:
+        description: 'Type "destroy" to confirm that ALL resources of primary-centralindia will be deleted'
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+# Same group as terraform-apply.yml: an apply and a destroy can never overlap
+concurrency:
+  group: tf-apply-primary-centralindia
+  cancel-in-progress: false
+
+env:
+  STACK: primary-centralindia
+  TF_IN_AUTOMATION: "true"
+  TF_INPUT: "0"
+  TF_VAR_tenant_id: ${{ vars.AZURE_TENANT_ID }}
+  TF_VAR_subscription_ids: ${{ vars.TF_SUBSCRIPTION_IDS }}
+
+jobs:
+  plan-destroy:
+    name: plan-destroy (primary-centralindia)
+    # Guard rails: correct confirmation text AND run from main only
+    if: inputs.confirm == 'destroy' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: primary-centralindia
+    outputs:
+      has_changes: ${{ steps.plan.outputs.has_changes }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Azure login
+        uses: azure/login@v2
+        with:
+          creds: ${{ secrets.TERRAFORM_SP }}
+          enable-AzPSSession: true
+
+      - name: Install the Az modules the bootstrap script uses
+        shell: pwsh
+        run: Install-Module Az.Accounts, Az.Resources, Az.Storage -Force -Scope CurrentUser -AllowClobber
+
+      # Idempotent: confirms the backend exists and writes backend.hcl
+      - name: Bootstrap Terraform backend
+        shell: pwsh
+        run: |
+          ../scripts/Bootstrap-TerraformBackend.ps1 `
+            -SubscriptionId     "${{ vars.TF_SUBSCRIPTION_ID }}" `
+            -ResourceGroupName  "${{ vars.TF_STATE_RG }}" `
+            -StorageAccountName "${{ vars.TF_STATE_STORAGE }}"
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ${{ vars.TF_VERSION }}   # must match the destroy job
+          terraform_wrapper: false
+
+      - name: Terraform init
+        run: terraform init -backend-config="backend.hcl"
+
+      # -detailed-exitcode: 0 = nothing to destroy, 1 = error, 2 = resources to destroy
+      - name: Terraform plan -destroy
+        id: plan
+        run: |
+          set +e
+          terraform plan -destroy -no-color -lock-timeout=10m -detailed-exitcode -out=tfplan
+          code=$?
+          set -e
+          if [ "$code" -eq 1 ]; then exit 1; fi
+          if [ "$code" -eq 2 ]; then echo "has_changes=true" >> "$GITHUB_OUTPUT"; else echo "has_changes=false" >> "$GITHUB_OUTPUT"; fi
+
+      - name: Publish destroy plan to job summary
+        run: |
+          {
+            echo "## DESTROY plan: \`${STACK}\`"
+            echo "Resources to destroy: **${{ steps.plan.outputs.has_changes }}**  |  Commit: \`${{ github.sha }}\`"
+            echo ""
+            echo "> Approving the **destroy** job deletes everything listed below."
+            echo '```text'
+            terraform show -no-color tfplan | head -c 60000
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      # The plan file contains state and secret values, so it is encrypted
+      - name: Prepare plan bundle
+        if: steps.plan.outputs.has_changes == 'true'
+        env:
+          PLAN_PASSPHRASE: ${{ secrets.TF_PLAN_PASSPHRASE }}
+        run: |
+          printf '%s' "$PLAN_PASSPHRASE" | gpg --batch --yes --pinentry-mode loopback \
+            --passphrase-fd 0 --symmetric --cipher-algo AES256 --output tfplan.gpg tfplan
+
+      - name: Upload plan bundle
+        if: steps.plan.outputs.has_changes == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: terraform-destroy-plan-primary-centralindia
+          path: |
+            primary-centralindia/tfplan.gpg
+            primary-centralindia/backend.hcl
+          retention-days: 1          # a destroy plan should be approved quickly
+          if-no-files-found: error
+
+  destroy:
+    name: destroy (primary-centralindia)
+    needs: plan-destroy
+    if: needs.plan-destroy.outputs.has_changes == 'true'   # nothing left -> skipped
+    runs-on: ubuntu-latest
+    environment: prod              # <- pauses here for the required reviewer
+    timeout-minutes: 120
+    defaults:
+      run:
+        working-directory: primary-centralindia
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4   # same commit (github.sha) as the plan job
+
+      - name: Azure login
+        uses: azure/login@v2
+        with:
+          creds: ${{ secrets.TERRAFORM_SP }}
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ${{ vars.TF_VERSION }}
+          terraform_wrapper: false
+
+      - name: Download plan bundle
+        uses: actions/download-artifact@v4
+        with:
+          name: terraform-destroy-plan-primary-centralindia
+          path: primary-centralindia
+
+      - name: Decrypt plan
+        env:
+          PLAN_PASSPHRASE: ${{ secrets.TF_PLAN_PASSPHRASE }}
+        run: |
+          printf '%s' "$PLAN_PASSPHRASE" | gpg --batch --yes --pinentry-mode loopback \
+            --passphrase-fd 0 --decrypt --output tfplan tfplan.gpg
+
+      - name: Terraform init
+        run: terraform init -backend-config="backend.hcl"
+
+      # Applying a destroy plan deletes exactly the reviewed resources.
+      # If the state changed after planning, Terraform stops with "saved plan is stale".
+      - name: Terraform apply (destroy)
+        run: terraform apply -no-color -lock-timeout=10m tfplan
+
+      - name: Destroy summary
+        if: always()
+        run: |
+          {
+            echo "## Destroy result: **${{ job.status }}**"
+            echo "Stack: \`${STACK}\`  |  Commit: \`${{ github.sha }}\`"
+            if [ "${{ job.status }}" = "success" ]; then
+              echo ""
+              echo "Resources still in state (expect none):"
+              echo '```text'
+              terraform state list 2>/dev/null || true
+              echo '```'
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
