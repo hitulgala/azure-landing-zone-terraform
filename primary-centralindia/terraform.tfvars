@@ -4,14 +4,10 @@
 # ==============================================================================
 
 # ------------------------------------------------------------------ Tenant, subscriptions, placement
-tenant_id = "4c3b2be2-63ec-40e2-bcb9-56f1caa72da4" # <-- Entra tenant ID
 
-subscription_ids = {
-  governance = "baaabd58-ecaf-4bb9-bed8-d32a83075120" # <-- Governance subscription
-  hub        = "baaabd58-ecaf-4bb9-bed8-d32a83075120" # <-- Hub subscription
-  identity   = "baaabd58-ecaf-4bb9-bed8-d32a83075120" # <-- Identity subscription
-  workload   = "baaabd58-ecaf-4bb9-bed8-d32a83075120" # <-- Workload subscription
-}
+# tenant_id and subscription_ids are NOT set here:
+#   locally -> ids.auto.tfvars (git-ignored; copy ids.auto.tfvars.example)
+#   in CI   -> GitHub repository variables, passed as TF_VAR_tenant_id / TF_VAR_subscription_ids
 
 location = "centralindia"
 
@@ -247,8 +243,7 @@ hub = {
 
   # ---- Private DNS zones: CREATED here (primary), only LINKED from the secondary
   private_dns = {
-    create_zones = true
-    #resource_group_name = "rg-net-prd-cin" # same as hub.network.resource_group_name
+    create_zones        = true
     resource_group_name = "rg-net-prd-cin-001"
     vnet_link_name      = "link-hub-prd-cin"
     zone_names = [
@@ -380,7 +375,8 @@ identity = {
     purge_protection_enabled      = true
     soft_delete_retention_days    = 90
     public_network_access_enabled = true # keep true only while Terraform runs OUTSIDE the VNet
-    #allowed_ip_ranges             = ["223.181.58.89"] # <-- your runner's public IP (plain IP, not /32)
+    #allowed_ip_ranges             = ["X.X.X.X"] # <-- your runner's public IP (plain IP, not /32)
+    network_default_action  = "Allow"
     secret_name             = "dc-local-admin-password"
     role_propagation_wait   = "90s"
     diagnostic_setting_name = "diag-kv-to-law"

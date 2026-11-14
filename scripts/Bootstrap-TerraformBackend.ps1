@@ -29,7 +29,7 @@
     Governance subscription ID (the state storage account lives there).
 
 .EXAMPLE
-    .\Bootstrap-TerraformBackend.ps1 -SubscriptionId "baaabd58-ecaf-4bb9-bed8-d32a83075120" -ResourceGroupName "rg-tfstate-prd-cin-001" -StorageAccountName "sttfstateprdcin001"
+    .\Bootstrap-TerraformBackend.ps1 -SubscriptionId "<governance-subscription-id>" -ResourceGroupName "<state-rg-name>"" -StorageAccountName <globally-unique-name>"
 
 .NOTES
     Requires: PowerShell 7+ (or Windows PowerShell 5.1) and the Az.Accounts, Az.Resources and
@@ -67,7 +67,7 @@ param(
 
     [bool] $ApplyDeleteLock = $true,
 
-    [hashtable] $Tags = @{ managed_by = 'terraform-backend-script'; purpose = 'terraform-state' ; owner = 'platform-team@example.com'},
+    [hashtable] $Tags = @{ environment = 'prd'; workload = 'platform'; owner = 'platform-team@example.com'; cost_center = 'CC-0000'; managed_by = 'terraform-backend-script' },
 
     # Folder that contains the stack directories (default: the parent of this script's folder).
     [string] $RepoRoot = (Split-Path -Parent $PSScriptRoot)
@@ -88,10 +88,8 @@ Write-Step "Selecting subscription $SubscriptionId"
 
 $context = Get-AzContext -ErrorAction SilentlyContinue
 
-if (-not $context)
-{
-    if ($env:GITHUB_ACTIONS -eq "true")
-    {
+if (-not $context) {
+    if ($env:GITHUB_ACTIONS -eq "true") {
         throw "No Azure PowerShell context available. Ensure azure/login uses enable-AzPSSession:true."
     }
 
@@ -100,7 +98,7 @@ if (-not $context)
 }
 
 Set-AzContext -Subscription $SubscriptionId | Out-Null
-$context  = Get-AzContext
+$context = Get-AzContext
 $tenantId = $context.Tenant.Id
 
 
@@ -109,7 +107,8 @@ Write-Step "Resource group '$ResourceGroupName'"
 if (-not (Get-AzResourceGroup -Name $ResourceGroupName -ErrorAction SilentlyContinue)) {
     New-AzResourceGroup -Name $ResourceGroupName -Location $Location -Tag $Tags | Out-Null
     Write-Host "    created"
-} else {
+}
+else {
     Write-Host "    already exists"
 }
 
@@ -130,7 +129,8 @@ if (-not $account) {
         -AllowSharedKeyAccess     $false `
         -Tag                      $Tags
     Write-Host "    created"
-} else {
+}
+else {
     # Re-assert the security settings if the account already existed.
     Set-AzStorageAccount `
         -ResourceGroupName      $ResourceGroupName `
@@ -158,7 +158,8 @@ if (-not (Get-AzRmStorageContainer -ResourceGroupName $ResourceGroupName -Storag
     New-AzRmStorageContainer -ResourceGroupName $ResourceGroupName -StorageAccountName $StorageAccountName `
         -Name $ContainerName -PublicAccess None | Out-Null
     Write-Host "    created"
-} else {
+}
+else {
     Write-Host "    already exists"
 }
 
@@ -167,7 +168,8 @@ if (-not (Get-AzRmStorageContainer -ResourceGroupName $ResourceGroupName -Storag
 Write-Step "Granting the signed-in identity 'Storage Blob Data Contributor' on the account"
 if ($context.Account.Type -eq 'User') {
     $principalId = (Get-AzADUser -SignedIn).Id
-} else {
+}
+else {
     $principalId = (Get-AzADServicePrincipal -ApplicationId $context.Account.Id).Id
 }
 $scope = $account.Id
@@ -175,7 +177,8 @@ $hasRole = Get-AzRoleAssignment -ObjectId $principalId -RoleDefinitionName 'Stor
 if (-not $hasRole) {
     New-AzRoleAssignment -ObjectId $principalId -RoleDefinitionName 'Storage Blob Data Contributor' -Scope $scope | Out-Null
     Write-Host "    role assigned (can take a few minutes to take effect)"
-} else {
+}
+else {
     Write-Host "    already assigned"
 }
 
@@ -192,7 +195,8 @@ try {
                     -Blob "$folder/.keep" -Context $storageContext -Force | Out-Null
                 $uploaded = $true
                 Write-Host "    $ContainerName/$folder/"
-            } catch {
+            }
+            catch {
                 # Role assignments propagate slowly; retry for up to ~2 minutes.
                 Write-Host "    waiting for the role assignment to take effect (attempt $attempt/12)..."
                 Start-Sleep -Seconds 10
@@ -200,7 +204,8 @@ try {
         }
         if (-not $uploaded) { throw "Could not write to the container. Check your role assignment and re-run the script." }
     }
-} finally {
+}
+finally {
     Remove-Item $marker.FullName -Force -ErrorAction SilentlyContinue
 }
 
@@ -209,12 +214,13 @@ if ($ApplyDeleteLock) {
     Write-Step "CanNotDelete lock on the storage account"
     $lockName = 'tfstate-do-not-delete'
     if (-not (Get-AzResourceLock -ResourceGroupName $ResourceGroupName -ResourceName $StorageAccountName `
-            -ResourceType 'Microsoft.Storage/storageAccounts' -LockName $lockName -ErrorAction SilentlyContinue)) {
+                -ResourceType 'Microsoft.Storage/storageAccounts' -LockName $lockName -ErrorAction SilentlyContinue)) {
         New-AzResourceLock -LockName $lockName -LockLevel CanNotDelete -ResourceGroupName $ResourceGroupName `
             -ResourceName $StorageAccountName -ResourceType 'Microsoft.Storage/storageAccounts' `
             -LockNotes 'Holds Terraform state. Remove the lock before deleting.' -Force | Out-Null
         Write-Host "    lock created"
-    } else {
+    }
+    else {
         Write-Host "    lock already exists"
     }
 }

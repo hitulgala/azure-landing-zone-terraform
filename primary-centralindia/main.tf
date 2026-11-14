@@ -168,7 +168,7 @@ module "peering_hub_workload" {
   }
 }
 
-/*
+
 # ---------------------------------------------------------------- Azure Policy (subscription scope)
 # Policy is subscription-wide, not regional, so ONLY the primary stack assigns it.
 # One call per subscription; each subscription has its own rules in tfvars (policies.<name>).
@@ -219,15 +219,3 @@ module "policy_workload" {
   mandatory_tags          = var.policies.workload.mandatory_tags
   assignments             = var.policies.workload.assignments
 }
-
-
-# ---------------------------------------------------------------- Safety check
-# The spoke route tables and DNS settings in tfvars hard-wire the firewall IP.
-# This warns (it does not fail the apply) if Azure assigned a different address.
-check "firewall_private_ip_matches_tfvars" {
-  assert {
-    condition     = module.hub_firewall.private_ip_address == var.expected_firewall_private_ip
-    error_message = "The firewall got a different private IP than expected_firewall_private_ip in terraform.tfvars. Update the IP in the route tables / dns_servers in tfvars and re-apply."
-  }
-}
-*/

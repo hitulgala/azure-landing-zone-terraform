@@ -1,0 +1,21 @@
+sequenceDiagram
+  autonumber
+  participant VM as VM in a spoke
+  participant FW as Hub firewall (DNS proxy)
+  participant RES as DNS Private Resolver (inbound)
+  participant AZ as Azure DNS and Private DNS zones
+  participant DC as Domain controllers
+  VM->>FW: query (spoke VNet DNS = firewall IP)
+  FW->>RES: forward to resolver inbound IP
+  alt privatelink name, e.g. Key Vault
+    RES->>AZ: resolve from the hub VNet (zone linked)
+    AZ-->>RES: private endpoint IP
+  else AD domain, e.g. corp.example.com
+    RES->>DC: forwarding ruleset via outbound endpoint
+    DC-->>RES: AD DNS answer
+  else public name
+    RES->>AZ: Azure-provided DNS
+    AZ-->>RES: public answer
+  end
+  RES-->>FW: answer
+  FW-->>VM: answer

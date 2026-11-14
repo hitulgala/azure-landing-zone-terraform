@@ -1,0 +1,24 @@
+flowchart LR
+  subgraph CIN["CENTRAL INDIA - primary - 10.10.0.0/16"]
+    direction TB
+    G1["GOVERNANCE subscription<br/>Log Analytics, action group,<br/>Service Health alert, Azure Policy"]
+    H1["HUB subscription<br/>Azure Firewall, DNS resolver,<br/>Private DNS zones (created here)"]
+    I1["IDENTITY subscription<br/>2 domain controllers, availability set<br/>(3rd optional) + Key Vault"]
+    W1["WORKLOAD subscription<br/>app, data and PE subnets<br/>Recovery Services Vault"]
+    G1 -.->|"logs and alerts"| H1
+    H1 ---|"VNet peering"| I1
+    H1 ---|"VNet peering"| W1
+  end
+  subgraph SIN["SOUTH INDIA - secondary - 10.20.0.0/16"]
+    direction TB
+    G2["GOVERNANCE subscription<br/>Log Analytics, action group"]
+    H2["HUB subscription<br/>Azure Firewall, DNS resolver,<br/>links to the primary DNS zones"]
+    I2["IDENTITY subscription<br/>2 domain controllers, availability set<br/>Key Vault + private endpoint"]
+    W2["WORKLOAD subscription<br/>app, data and PE subnets<br/>Recovery Services Vault"]
+    G2 -.->|"logs and alerts"| H2
+    H2 ---|"VNet peering"| I2
+    H2 ---|"VNet peering"| W2
+  end
+  H1 <==>|"global VNet peering"| H2
+  I1 <-.->|"AD replication"| I2
+  W1 -.->|"ASR target and backup"| W2

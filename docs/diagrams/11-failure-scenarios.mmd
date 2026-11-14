@@ -1,0 +1,19 @@
+flowchart TB
+  F0{"What failed?"}
+  H["Host or rack<br/>Central India"]
+  Z["Availability zone<br/>Central India"]
+  R["Entire region<br/>Central India"]
+  X["Object deleted or<br/>corrupted in AD"]
+  H1["Other DC in the availability set<br/>keeps serving - RTO ~0, RPO 0"]
+  Z1["Both CIN DCs may be affected<br/>(availability set is not zonal)<br/>clients use South India DCs"]
+  R1["Clients use South India DCs<br/>logons continue"]
+  R2["Seize FSMO roles only if needed<br/>RTO up to 1 hour"]
+  R3["Workload VMs: ASR failover<br/>to South India vault"]
+  X1["AD Recycle Bin restore<br/>no DC backup by design"]
+  F0 --> H --> H1
+  F0 --> Z --> Z1
+  F0 --> R
+  R --> R1
+  R --> R2
+  R --> R3
+  F0 --> X --> X1

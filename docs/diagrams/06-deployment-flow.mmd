@@ -1,0 +1,7 @@
+flowchart LR
+  S0["0. Bootstrap<br/>Bootstrap-TerraformBackend.ps1<br/>state storage, container,<br/>backend.hcl (runs in every plan)"]
+  S1["1. Primary region<br/>pipeline: PR plan, merge,<br/>approve, apply"]
+  S2["2. Secondary region<br/>laptop for now:<br/>copy primary outputs,<br/>init, plan, apply"]
+  S3["3. Verify<br/>firewall IP check,<br/>peering status, DNS"]
+  S4["4. Post-deploy<br/>promote DCs, AD sites,<br/>policies audit then enforce"]
+  S0 --> S1 --> S2 --> S3 --> S4
