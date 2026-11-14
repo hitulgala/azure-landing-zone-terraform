@@ -25,6 +25,8 @@ env:
   STACK: primary-centralindia
   TF_IN_AUTOMATION: "true"
   TF_INPUT: "0"
+  TF_VAR_tenant_id: ${{ vars.AZURE_TENANT_ID }}
+  TF_VAR_subscription_ids: ${{ vars.TF_SUBSCRIPTION_IDS }}
  
 jobs:
   plan:

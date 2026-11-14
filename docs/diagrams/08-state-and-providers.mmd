@@ -1,0 +1,24 @@
+flowchart TB
+  RUN["Terraform runner<br/>Entra identity"]
+  subgraph STK["Region stack (main.tf + terraform.tfvars)"]
+    PG["provider azurerm.governance"]
+    PH["provider azurerm.hub"]
+    PI["provider azurerm.identity"]
+    PW["provider azurerm.workload"]
+  end
+  subgraph SUBS["Azure subscriptions"]
+    SG["Governance"]
+    SH["Hub"]
+    SI["Identity"]
+    SW["Workload"]
+  end
+  subgraph BE["Governance subscription - state storage (GZRS)"]
+    C1["tfstate/primary-centralindia/terraform.tfstate"]
+    C2["tfstate/secondary-southindia/terraform.tfstate"]
+  end
+  RUN --> STK
+  PG --> SG
+  PH --> SH
+  PI --> SI
+  PW --> SW
+  STK -->|"azurerm backend<br/>Entra ID auth, no keys"| BE

@@ -1,0 +1,13 @@
+flowchart TB
+  TV["terraform.tfvars (primary)<br/>mandatory_tag_names + policies"]
+  subgraph PM["module.policy (one call per subscription)"]
+    T1["Require tag on resource groups<br/>Deny"]
+    T2["Inherit tag from resource group<br/>Modify, managed identity"]
+    T3["Allowed locations / VM SKUs /<br/>no public IP on NICs<br/>audit first"]
+  end
+  TV --> PM
+  PM --> S1["Governance subscription"]
+  PM --> S2["Hub subscription"]
+  PM --> S3["Identity subscription"]
+  PM --> S4["Workload subscription"]
+  T2 -->|"role from the policy definition<br/>(Contributor) at subscription scope"| ID["Policy managed identity"]
