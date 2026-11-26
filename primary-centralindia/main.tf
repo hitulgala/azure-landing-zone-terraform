@@ -16,9 +16,77 @@ module "governance" {
   monitored_subscription_ids = values(var.subscription_ids)
   log_analytics              = var.governance.log_analytics
   action_group               = var.governance.action_group
-  service_health_alert       = var.governance.service_health_alert
   activity_log_diagnostics   = var.governance.activity_log_diagnostics
 }
+
+locals {
+  platform_roles = ["governance", "hub", "identity", "workload"]
+  service_health_alert_roles = [
+    for i, role in local.platform_roles : role
+    if !contains([for r in slice(local.platform_roles, 0, i) : var.subscription_ids[r]], var.subscription_ids[role])
+  ]
+}
+
+module "service_health_alert_governance" {
+  source    = "../modules/service-health-alert"
+  providers = { azurerm = azurerm.governance }
+
+  name                = var.governance.service_health_alert.name
+  resource_group_name = module.governance.resource_group_name
+  subscription_id     = var.subscription_ids.governance
+  tags                = var.tags
+  events              = var.governance.service_health_alert.events
+  locations           = try(var.governance.service_health_alert.locations, [])
+  action_group_id     = module.governance.action_group_id
+}
+
+moved {
+  from = module.governance.azurerm_monitor_activity_log_alert.service_health
+  to   = module.service_health_alert_governance.azurerm_monitor_activity_log_alert.this
+}
+
+module "service_health_alert_hub" {
+  count     = contains(local.service_health_alert_roles, "hub") ? 1 : 0
+  source    = "../modules/service-health-alert"
+  providers = { azurerm = azurerm.hub }
+
+  name                = "${var.governance.service_health_alert.name}-hub"
+  resource_group_name = module.hub_network.resource_group_name
+  subscription_id     = var.subscription_ids.hub
+  tags                = var.tags
+  events              = var.governance.service_health_alert.events
+  locations           = try(var.governance.service_health_alert.locations, [])
+  action_group_id     = module.governance.action_group_id
+}
+
+module "service_health_alert_identity" {
+  count     = contains(local.service_health_alert_roles, "identity") ? 1 : 0
+  source    = "../modules/service-health-alert"
+  providers = { azurerm = azurerm.identity }
+
+  name                = "${var.governance.service_health_alert.name}-identity"
+  resource_group_name = module.identity_network.resource_group_name
+  subscription_id     = var.subscription_ids.identity
+  tags                = var.tags
+  events              = var.governance.service_health_alert.events
+  locations           = try(var.governance.service_health_alert.locations, [])
+  action_group_id     = module.governance.action_group_id
+}
+
+module "service_health_alert_workload" {
+  count     = contains(local.service_health_alert_roles, "workload") ? 1 : 0
+  source    = "../modules/service-health-alert"
+  providers = { azurerm = azurerm.workload }
+
+  name                = "${var.governance.service_health_alert.name}-workload"
+  resource_group_name = module.workload_network.resource_group_name
+  subscription_id     = var.subscription_ids.workload
+  tags                = var.tags
+  events              = var.governance.service_health_alert.events
+  locations           = try(var.governance.service_health_alert.locations, [])
+  action_group_id     = module.governance.action_group_id
+}
+
 
 # ---------------------------------------------------------------- Hub subscription
 module "hub_network" {

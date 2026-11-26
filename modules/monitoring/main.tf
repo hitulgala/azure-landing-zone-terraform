@@ -4,7 +4,8 @@
 #             - resource group
 #             - Log Analytics workspace
 #             - Action group (alert routing: e-mail / webhook)
-#             - Service Health alert across all platform subscriptions
+#             (Service Health alerts: modules/service-health-alert, one per
+#              subscription, because an alert can only watch its own subscription)
 #             - Subscription Activity Log -> Log Analytics (switch in tfvars)
 # Activity logs are subscription-wide, so enable them in ONE region only.
 # ==============================================================================
@@ -46,27 +47,6 @@ resource "azurerm_monitor_action_group" "this" {
       service_uri             = webhook_receiver.value
       use_common_alert_schema = true
     }
-  }
-}
-
-resource "azurerm_monitor_activity_log_alert" "service_health" {
-  name                = var.service_health_alert.name
-  resource_group_name = azurerm_resource_group.this.name
-  location            = "global"
-  scopes              = [for id in var.monitored_subscription_ids : "/subscriptions/${id}"]
-  description         = "Azure Service Health events"
-  tags                = var.tags
-
-  criteria {
-    category = "ServiceHealth"
-    service_health {
-      events    = var.service_health_alert.events
-      locations = length(var.service_health_alert.locations) > 0 ? var.service_health_alert.locations : null
-    }
-  }
-
-  action {
-    action_group_id = azurerm_monitor_action_group.this.id
   }
 }
 

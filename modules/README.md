@@ -1,6 +1,6 @@
 # Modules
 
-Nine single-purpose modules, called by both stacks. Rules for every module:
+Ten single-purpose modules, called by both stacks. Rules for every module:
 * No provider configuration: stacks pass the right subscription in with `providers = { azurerm = azurerm.<alias> }`.
 * No hard-coded deployment values: everything arrives through typed, validated variables.
 * `tags` is a required input and is applied to every taggable resource.
@@ -8,6 +8,7 @@ Nine single-purpose modules, called by both stacks. Rules for every module:
 | Module | Subscription | What it builds |
 |--------|--------------|----------------|
 | `monitoring` | Governance | Resource group, Log Analytics workspace, action group, Service Health alert, Activity Log forwarding |
+| `service-health-alert` | Any (one call per subscription) | Service Health activity log alert for one subscription, notifying the governance action group |
 | `network` | Hub / Identity / Workload | Resource group, VNet, subnets, NSGs and rules, route tables, NSG diagnostics |
 | `firewall` | Hub | Azure Firewall Standard, firewall policy, rules, diagnostics, health alert |
 | `dns` | Hub | DNS Private Resolver, forwarding rules, Private DNS zones (primary only) and VNet links |
