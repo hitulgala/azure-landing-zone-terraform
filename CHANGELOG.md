@@ -16,5 +16,8 @@ First public release.
 - `ids.auto.tfvars.example`: tenant and subscription IDs kept out of Git (local file, `TF_VAR_*` in CI).
 - Documentation: CI/CD pipeline, deployment and DR, design decisions, architecture diagrams, contributing guide, security policy, issue and pull request templates, Dependabot configuration.
 
+### Fixed
+- Service Health alerts are now created per subscription; a single alert cannot monitor several subscriptions.
+
 [Unreleased]: https://github.com/hitulgala/azure-landing-zone-terraform/compare/v1.0.0...HEAD
 [1.0.0]: https://github.com/hitulgala/azure-landing-zone-terraform/releases/tag/v1.0.0

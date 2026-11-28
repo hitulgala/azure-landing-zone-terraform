@@ -1,4 +1,9 @@
 # Outputs of the monitoring module.
+output "resource_group_name" {
+  description = "Governance monitoring resource group (holds the governance Service Health alert)."
+  value       = azurerm_resource_group.this.name
+}
+
 output "log_analytics_workspace_id" {
   description = "Workspace ID used by every diagnostic setting."
   value       = azurerm_log_analytics_workspace.this.id

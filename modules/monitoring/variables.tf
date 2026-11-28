@@ -14,7 +14,7 @@ variable "tags" {
 }
 
 variable "monitored_subscription_ids" {
-  description = "Subscriptions covered by the Service Health alert and Activity Log forwarding."
+  description = "Subscriptions whose Activity Log is forwarded to the workspace."
   type        = list(string)
 }
 
@@ -40,15 +40,6 @@ variable "action_group" {
     condition     = length(var.action_group.short_name) <= 12
     error_message = "action_group.short_name must be 12 characters or fewer."
   }
-}
-
-variable "service_health_alert" {
-  description = "Service Health alert settings. locations = [] means all regions."
-  type = object({
-    name      = string
-    events    = list(string) # Incident, Maintenance, Informational, ActionRequired, Security
-    locations = optional(list(string), [])
-  })
 }
 
 variable "activity_log_diagnostics" {
